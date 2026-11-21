@@ -259,6 +259,11 @@ export function assess(row: Row): Assessment {
           ? " The reading exceeds the drinking-water limit. If this is your supply, use a known safe source for infant formula and contact your utility or health department. Boiling does not remove nitrate or nitrite."
           : " The reading exceeds the screening reference. Use an alternative drinking source while your utility or health department advises you.",
     };
+  if (above && key === "iron")
+    return unsure(
+      "The iron exceeds EPA’s 0.3 mg/L taste and appearance guideline. You may notice a metallic taste or rusty stains. This guideline alone cannot determine a drinking-water health risk.",
+      reference,
+    );
   if (q === ">" || (q === "<" && amount > spec.limit))
     return unsure(
       spec.meaning +
@@ -268,7 +273,7 @@ export function assess(row: Row): Assessment {
   if (key === "lead")
     return unsure(
       spec.meaning +
-        " An action level guides public-system treatment; a result below it cannot establish safe lead exposure at your tap.",
+        " This result is at or below the public-system action level. That level triggers action by a utility; it does not establish a safe amount of lead to drink.",
       reference,
     );
   if (above)

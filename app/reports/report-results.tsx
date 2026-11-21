@@ -4,6 +4,8 @@ export function ReportResults({ rows }: { rows: Row[] }) {
   const findings = rows.map((row) => ({ row, ...assess(row) }));
   const within = findings.filter((item) => item.category === "safe").length;
   const flagged = findings.filter((item) => item.category === "unsafe").length;
+  const rated = within + flagged;
+  const unsure = findings.length - rated;
   return (
     <>
       <div className={"finding " + (flagged ? "elevated" : "")} role="status">
@@ -20,14 +22,17 @@ export function ReportResults({ rows }: { rows: Row[] }) {
       </div>
       {findings.length > 0 && (
         <div className="report-score">
-          <strong>{Math.round((100 * within) / findings.length)}%</strong>
+          <strong>
+            {rated ? Math.round((100 * within) / rated) + "%" : "—"}
+          </strong>
           <div>
-            <h3>Confirmed results within reference</h3>
+            <h3>
+              {rated
+                ? "of rated results are SAFE"
+                : "No SAFE or UNSAFE ratings"}
+            </h3>
             <p>
-              {within} of {findings.length} reviewed items met their individual
-              checks. Uncertain items stay in the denominator. This percentage
-              cannot predict whether water is safe to drink, bathe in, or cook
-              with.
+              {within} SAFE · {flagged} UNSAFE · {unsure} UNSURE
             </p>
           </div>
         </div>
@@ -66,10 +71,12 @@ export function ReportResults({ rows }: { rows: Row[] }) {
       <details>
         <summary>Sources and how to read the labels</summary>
         <p>
-          A SAFE label applies to the listed measurement only. Health limits,
-          appearance guidelines, and signs of bacterial contamination answer
-          different questions. A missing test has no result to score. For
-          private wells, confirm follow-up with your county health department.
+          The percentage counts SAFE results out of all SAFE and UNSAFE results.
+          UNSURE results are listed separately. A SAFE label applies to the
+          listed measurement only. Health limits, appearance guidelines, and
+          signs of bacterial contamination answer different questions. A missing
+          test has no result to score. For private wells, confirm follow-up with
+          your county health department.
         </p>
         <ul>
           <li>

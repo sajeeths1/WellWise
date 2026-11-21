@@ -33,4 +33,4 @@ Pilot the handoff with a county health department. Expand the reference table an
 
 Dashboard landscape photograph from Unsplash (photo-1470770841072-f978cf4d019e). It is illustrative.
 
-After confirmation, results appear in report order with an individual SAFE, UNSAFE or UNSURE label. Unsafe results include potential health effects and next steps. The report percentage is the number of confirmed items within their reference divided by all reviewed items, including unknowns. A health concern is highlighted independently of this percentage. The app cannot infer overall potability from a subset of tests or a treatment-plant average.
+After confirmation, results appear in report order with an individual SAFE, UNSAFE or UNSURE label. Unsafe results include potential health effects and next steps. The report percentage is the SAFE count divided by SAFE plus UNSAFE. UNSURE results are counted separately. An all-UNSURE report shows no percentage. A health concern is highlighted independently of this percentage. The app cannot infer overall potability from a subset of tests or a treatment-plant average.
