@@ -3,7 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useWell } from "../workspace";
-import { compare, parseRows, type Row } from "@/lib/thresholds";
+import { ReportResults } from "./report-results";
+import { parseRows, type Row } from "@/lib/thresholds";
 import { readReportPhoto } from "@/lib/read-report-photo";
 const samples = [
   ["metals", "Iron, manganese and lead"],
@@ -291,28 +292,7 @@ export default function Reports() {
               conditions at your tap today.
             </p>
           )}
-          {rows.map((row, i) => (
-            <div
-              className={
-                "finding " +
-                (compare(row).startsWith("Above reference") ? "elevated" : "")
-              }
-              key={i}
-            >
-              <h3>
-                {row.analyte} · {row.period ? row.period + " " : ""}
-                {row.qualifier === "=" ? "" : row.qualifier}
-                {row.value} {row.unit}
-              </h3>
-              <p>{compare(row)}</p>
-            </div>
-          ))}
-          <a
-            className="text-link"
-            href="https://www.epa.gov/sdwa/drinking-water-regulations-and-contaminants"
-          >
-            EPA reference standards ↗
-          </a>
+          <ReportResults rows={rows} />
         </section>
       )}
       <section id="samples" className="panel form">

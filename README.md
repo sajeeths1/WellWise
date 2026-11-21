@@ -32,3 +32,5 @@ When the server routes are implemented, copy `.env.example` to `.env.local` for 
 Pilot the handoff with a county health department. Expand the reference table and evaluate OCR on more lab layouts. The current demo requires no AI credentials.
 
 Dashboard landscape photograph from Unsplash (photo-1470770841072-f978cf4d019e). It is illustrative.
+
+After confirmation, results are grouped by individual drinking-water checks. The report percentage is the number of confirmed items within their reference divided by all reviewed items, including unknowns. A health concern is highlighted independently of this percentage. The app cannot infer overall potability from a subset of tests or a treatment-plant average.
