@@ -1,0 +1,6 @@
+SYNTHETIC SAMPLE • WELLWISE DEMO
+Pine Hollow Water Laboratory
+Sample: Private well | Collected: 2026-05-14
+Analyte            Result     Units
+Nitrate as N       12.4       mg/L
+Chloride           18         mg/L

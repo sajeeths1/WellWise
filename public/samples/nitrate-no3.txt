@@ -1,0 +1,3 @@
+SYNTHETIC SAMPLE • WELLWISE DEMO
+Sample type,Analyte,Result,Unit
+Private well,Nitrate (as NO3),48000,ug/L

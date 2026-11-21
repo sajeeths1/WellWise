@@ -1,0 +1,5 @@
+SYNTHETIC SAMPLE • WELLWISE DEMO
+Private well metals panel
+Iron ............ 0.84 mg/L
+Manganese ....... 0.09 mg/L
+Lead ............ <0.5 ug/L
