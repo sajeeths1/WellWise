@@ -13,6 +13,7 @@ export interface Assessment {
   category: Category;
   meaning: string;
   reference?: string;
+  healthEffect?: string;
 }
 
 const descriptions: Record<string, string> = {
@@ -41,6 +42,17 @@ interface Standard {
   kind: "health" | "appearance" | "action";
   meaning: string;
 }
+const infantEffect =
+  "Infants under six months can have trouble carrying oxygen in their blood. Shortness of breath or bluish skin after exposure needs emergency care.";
+const healthEffects: Record<string, string> = {
+  nitrate: infantEffect,
+  nitrite: infantEffect,
+  fluoride:
+    "Long-term exposure to high levels can damage bones. Children’s developing teeth can become discolored.",
+  lead: "Exposure can affect learning and development in children. In adults it can raise blood pressure and harm the kidneys.",
+  arsenic:
+    "Drinking water with too much arsenic over many years can damage skin and increase cancer risk.",
+};
 const standards: Record<string, Standard> = {
   iron: {
     limit: 0.3,
@@ -128,6 +140,8 @@ export function assess(row: Row): Assessment {
     return ecoli
       ? {
           category: "unsafe",
+          healthEffect:
+            "Finding E. coli indicates possible fecal contamination. Germs in contaminated water can cause diarrhea, stomach cramps, or nausea.",
           meaning:
             "E. coli was found. If this is your drinking source, use an alternative safe supply and contact your utility or county health department now.",
         }
@@ -238,12 +252,12 @@ export function assess(row: Row): Assessment {
   if (above && spec.kind !== "appearance")
     return {
       category: "unsafe",
+      healthEffect: healthEffects[key],
       reference,
       meaning:
-        spec.meaning +
-        (key === "nitrate" || key === "nitrite"
+        key === "nitrate" || key === "nitrite"
           ? " The reading exceeds the drinking-water limit. If this is your supply, use a known safe source for infant formula and contact your utility or health department. Boiling does not remove nitrate or nitrite."
-          : " The reading exceeds the screening reference. Use an alternative drinking source while your utility or health department advises you."),
+          : " The reading exceeds the screening reference. Use an alternative drinking source while your utility or health department advises you.",
     };
   if (q === ">" || (q === "<" && amount > spec.limit))
     return unsure(

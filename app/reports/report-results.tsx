@@ -1,10 +1,5 @@
-import { assess, type Row, type Category } from "@/lib/thresholds";
+import { assess, type Row } from "@/lib/thresholds";
 
-const groups: [Category, string][] = [
-  ["unsafe", "Unsafe to use"],
-  ["unsure", "Unsure because of insufficient information"],
-  ["safe", "Safe to use"],
-];
 export function ReportResults({ rows }: { rows: Row[] }) {
   const findings = rows.map((row) => ({ row, ...assess(row) }));
   const within = findings.filter((item) => item.category === "safe").length;
@@ -20,7 +15,7 @@ export function ReportResults({ rows }: { rows: Row[] }) {
         <p>
           {flagged
             ? "Review the unsafe findings first. Other measurements within range cannot cancel a health concern."
-            : "These categories describe each confirmed measurement at the time and place sampled. Overall drinking safety depends on other contaminants and conditions at your tap."}
+            : "Each label applies to one measurement. UNSURE means more information is needed to judge that item."}
         </p>
       </div>
       {findings.length > 0 && (
@@ -37,32 +32,41 @@ export function ReportResults({ rows }: { rows: Row[] }) {
           </div>
         </div>
       )}
-      {groups.map(([category, title]) => {
-        const items = findings.filter((item) => item.category === category);
-        return (
-          <section className="report-group" key={category}>
-            <h3>
-              {title} <span>({items.length})</span>
-            </h3>
-            {!items.length && <p>No reviewed items in this category.</p>}
-            {items.map(({ row, meaning, reference }, index) => (
-              <article className={"finding result-" + category} key={index}>
-                <h4>
-                  {row.analyte} · {row.period ? row.period + " " : ""}
-                  {row.qualifier === "=" ? "" : row.qualifier}
-                  {row.value} {row.unit}
-                </h4>
+      <ol
+        className="measurement-list"
+        aria-label="Measurements in report order"
+      >
+        {findings.map(
+          ({ row, meaning, category, healthEffect, reference }, index) => (
+            <li key={index}>
+              <article className={"finding result-" + category}>
+                <div className="measurement-heading">
+                  <h4>
+                    {row.analyte} · {row.period ? row.period + " " : ""}
+                    {row.qualifier === "=" ? "" : row.qualifier}
+                    {row.value} {row.unit}
+                  </h4>
+                  <strong className="measurement-status">
+                    {category.toUpperCase()}
+                  </strong>
+                </div>
                 <p>{meaning}</p>
+                {healthEffect && (
+                  <p>
+                    <strong>Possible health effects. </strong>
+                    {healthEffect}
+                  </p>
+                )}
                 {reference && <small>{reference}</small>}
               </article>
-            ))}
-          </section>
-        );
-      })}
+            </li>
+          ),
+        )}
+      </ol>
       <details>
-        <summary>Sources and how to read the categories</summary>
+        <summary>Sources and how to read the labels</summary>
         <p>
-          “Safe to use” applies to the listed measurement only. Health limits,
+          A SAFE label applies to the listed measurement only. Health limits,
           appearance guidelines, and signs of bacterial contamination answer
           different questions. A missing test has no result to score. For
           private wells, confirm follow-up with your county health department.
