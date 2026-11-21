@@ -17,7 +17,7 @@ Open http://localhost:3000. Record an observation or upload a photo up to 8 MB. 
 
 Choose the well’s county to find a testing contact and copy a request. Wake and Franklin have individual contacts from NC DHHS. Other counties use the state directory. The app does not request GPS.
 
-Open Lab reports and load the synthetic metals panel. Compare each parsed line with its printed source, edit fields and click **Confirm and analyze**. Pasted numeric text uses the same parser. Images of lab reports can be transcribed manually. The prototype supports the analytes in the three sample files. Unrecognized line formats can be omitted, and unsupported units or analytes have no verdict. Comparisons in lib/thresholds.ts use printed qualifiers, unit conversions, nitrate basis and EPA reference values. They do not determine overall potability.
+Open Lab reports and take a photo, choose an image, or try the synthetic report photo. Tesseract reads printed English text in a local browser worker; the photo never leaves the device. The app copies the worker, WebAssembly core and language data from npm packages before dev and build. Compare each parsed line with its printed source, edit fields and click **Confirm and analyze**. Pasted numeric text uses the same parser. Low-confidence OCR lines are highlighted. Retake unclear pages with the report heading and result units visible. The photo reader does best with one analyte, result and unit per line. The prototype supports the analytes in the three sample files. Unrecognized line formats can be omitted, and unsupported units or analytes have no verdict. Comparisons in lib/thresholds.ts use printed qualifiers, unit conversions, nitrate basis and EPA reference values. They do not determine overall potability.
 
 Run `npm run lint` and `npm run build` before pushing changes.
 
@@ -29,6 +29,6 @@ When the server routes are implemented, copy `.env.example` to `.env.local` for 
 
 ## Next steps
 
-Pilot the handoff with a county health department. Expand the reference table and add validated optical extraction for lab reports, with editable evidence and low-confidence flags. The current demo requires no AI credentials.
+Pilot the handoff with a county health department. Expand the reference table and evaluate OCR on more lab layouts. The current demo requires no AI credentials.
 
 Dashboard landscape photograph from Unsplash (photo-1470770841072-f978cf4d019e). It is illustrative.

@@ -42,14 +42,17 @@ export default function Dashboard() {
       <section className="hero">
         <div className="hero-copy">
           <h2>
-            Notice a change
+            Understand your
             <br />
-            in your water?
+            well-water report.
           </h2>
-          <p>Capture what you see and prepare a request for local testing.</p>
-          <Link className="button mint" href="/observations">
+          <p>
+            Take a picture of your lab results to read the numbers and see what
+            they mean.
+          </p>
+          <Link className="button mint" href="/reports">
             <Icon name="camera" />
-            Record an observation
+            Scan a lab report
           </Link>
         </div>
       </section>

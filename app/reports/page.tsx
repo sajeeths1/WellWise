@@ -1,8 +1,9 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWell } from "../workspace";
 import { compare, parseRows, type Row } from "@/lib/thresholds";
+import { readReportPhoto } from "@/lib/read-report-photo";
 const samples = [
   ["metals", "Iron, manganese and lead"],
   ["nitrate-n", "Nitrate as nitrogen"],
@@ -17,6 +18,73 @@ export default function Reports() {
   const [done, setDone] = useState(Boolean(lastReport));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState("");
+  const scan = useRef<AbortController | null>(null);
+  const camera = useRef<HTMLInputElement>(null);
+  const upload = useRef<HTMLInputElement>(null);
+  useEffect(() => () => scan.current?.abort(), []);
+  useEffect(
+    () => () => {
+      if (photo) URL.revokeObjectURL(photo);
+    },
+    [photo],
+  );
+
+  async function scanPhoto(file?: Blob) {
+    if (!file) return;
+    const controller = new AbortController();
+    scan.current?.abort();
+    scan.current = controller;
+    reset("");
+    setPhoto("");
+    setLastReport(null);
+    if (
+      !file.size ||
+      file.size > 8 * 1024 * 1024 ||
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+    ) {
+      setError("Choose a JPG, PNG or WebP image up to 8 MB.");
+      return;
+    }
+    setPhoto(URL.createObjectURL(file));
+    setLoading(true);
+    setProgress("Preparing the on-device reader…");
+    try {
+      const result = await readReportPhoto(
+        file,
+        setProgress,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      setReport(result.text);
+      const reportContext =
+        /\b(water|well|potable|groundwater|drinking)\b/i.test(result.text);
+      if (!reportContext || !result.rows.length) {
+        setError(
+          reportContext
+            ? "No complete numeric result lines were readable. Retake the page straight on, in good light, with the analytes, numbers and units in frame."
+            : "Couldn’t identify a water report. Include the water sample heading and the results table in the photo.",
+        );
+        return;
+      }
+      setRows(result.rows);
+    } catch {
+      if (!controller.signal.aborted)
+        setError(
+          "Couldn’t read that photo. Try a sharper JPG, PNG or WebP with the full results table visible.",
+        );
+    } finally {
+      if (!controller.signal.aborted) {
+        setProgress("");
+        setLoading(false);
+      }
+    }
+  }
+  function pick(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    void scanPhoto(file);
+  }
   function reset(text: string) {
     setReport(text);
     setRows([]);
@@ -39,6 +107,7 @@ export default function Reports() {
       const response = await fetch("/samples/" + sample + ".txt");
       if (!response.ok) throw new Error();
       const text = await response.text();
+      setPhoto("");
       reset(text);
       read(text);
     } catch {
@@ -58,82 +127,84 @@ export default function Reports() {
       <div className="heading">
         <h1>Lab reports</h1>
         <p>
-          Check the printed evidence, confirm each reading, and compare it with
-          a reference.
+          Read a report straight from a picture, then check what each
+          measurement means.
         </p>
       </div>
-      <section id="samples" className="panel form">
-        <h2>Review a report</h2>
-        <label htmlFor="sample">Synthetic sample report</label>
+      <section className="panel form">
+        <h2>Scan your lab report</h2>
+        <p>
+          Photograph one printed page with the water sample heading, results,
+          and units in view. WellWise reads it on your device.
+        </p>
         <div className="inline">
-          <select
-            id="sample"
-            value={sample}
+          <button
+            className="button"
             disabled={loading}
-            onChange={(e) => setSample(e.target.value)}
+            onClick={() => camera.current?.click()}
           >
-            {samples.map(([id, title]) => (
-              <option key={id} value={id}>
-                {title}
-              </option>
-            ))}
-          </select>
-          <button className="button" disabled={loading} onClick={load}>
-            {loading ? "Loading…" : "Load sample report"}
+            Take a photo
+          </button>
+          <button
+            className="secondary"
+            disabled={loading}
+            onClick={() => upload.current?.click()}
+          >
+            Choose a report image
           </button>
         </div>
-        <details>
-          <summary>Use a report photo for manual entry</summary>
-          <p>Choose a photo to read alongside your typed results.</p>
-          <input
-            aria-label="Report photo"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (photo) URL.revokeObjectURL(photo);
-              setPhoto("");
-              if (!file) return;
-              if (
-                !file.size ||
-                file.size > 8 * 1024 * 1024 ||
-                !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-              ) {
-                setError("Choose a JPG, PNG or WebP image up to 8 MB.");
-                return;
-              }
-              setError("");
-              setPhoto(URL.createObjectURL(file));
-            }}
-          />
-          {photo && (
-            <Image
-              unoptimized
-              width={800}
-              height={600}
-              className="preview"
-              src={photo}
-              alt="Lab report for transcription"
-            />
-          )}
-        </details>
-        <label htmlFor="report">Report text</label>
-        <textarea
-          id="report"
-          disabled={loading}
-          rows={5}
-          value={report}
-          onChange={(e) => reset(e.target.value)}
-          placeholder="Iron 0.84 mg/L"
+        <input
+          hidden
+          ref={camera}
+          aria-label="Take a report photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          onChange={pick}
         />
+        <input
+          hidden
+          ref={upload}
+          aria-label="Upload report photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={pick}
+        />
+        <small>JPG, PNG or WebP · Up to 8 MB</small>
         <button
-          className="secondary"
-          disabled={loading || !report.trim()}
-          onClick={() => read(report)}
+          className="text-link sample-photo"
+          disabled={loading}
+          onClick={async () => {
+            setLoading(true);
+            try {
+              const response = await fetch("/samples/metals-report.png");
+              if (!response.ok) throw new Error();
+              await scanPhoto(await response.blob());
+            } catch {
+              setError("Couldn’t open the sample image. Try again.");
+            } finally {
+              setLoading(false);
+            }
+          }}
         >
-          Read result lines
+          Try a synthetic report photo →
         </button>
-        <p role="status">{error}</p>
+        <p role="status">{progress || error}</p>
+        {photo && (
+          <details open>
+            <summary>Original report photo</summary>
+            <a href={photo} target="_blank" rel="noreferrer">
+              <Image
+                unoptimized
+                width={800}
+                height={600}
+                className="preview"
+                src={photo}
+                alt="Open the original report photo at full size"
+              />
+            </a>
+          </details>
+        )}
       </section>
       {rows.length > 0 && (
         <section className="panel form">
@@ -143,8 +214,24 @@ export default function Reports() {
             and compare every field with the original.
           </p>
           {rows.map((row, i) => (
-            <div key={i} className="evidence">
+            <div
+              key={i}
+              className="evidence"
+              style={row.uncertain ? { background: "#fff5d9" } : undefined}
+            >
+              {row.uncertain && (
+                <strong>Uncertain reading · please confirm</strong>
+              )}
               <code>{row.source}</code>
+              <button
+                className="text-link"
+                onClick={() => {
+                  setRows(rows.filter((_, index) => index !== i));
+                  setDone(false);
+                }}
+              >
+                Exclude line
+              </button>
               <div className="fields">
                 {(["analyte", "qualifier", "value", "unit"] as const).map(
                   (field) => (
@@ -202,6 +289,49 @@ export default function Reports() {
           </a>
         </section>
       )}
+      <section id="samples" className="panel form">
+        <label htmlFor="sample">Synthetic sample report</label>
+        <div className="inline">
+          <select
+            id="sample"
+            value={sample}
+            disabled={loading}
+            onChange={(e) => setSample(e.target.value)}
+          >
+            {samples.map(([id, title]) => (
+              <option key={id} value={id}>
+                {title}
+              </option>
+            ))}
+          </select>
+          <button className="button" disabled={loading} onClick={load}>
+            {loading ? "Loading…" : "Load sample report"}
+          </button>
+        </div>
+        <details>
+          <summary>
+            {photo && report
+              ? "View recognized text"
+              : "Paste report text instead"}
+          </summary>
+          <label htmlFor="report">Report text</label>
+          <textarea
+            id="report"
+            disabled={loading}
+            rows={5}
+            value={report}
+            onChange={(e) => reset(e.target.value)}
+            placeholder="Iron 0.84 mg/L"
+          />
+          <button
+            className="secondary"
+            disabled={loading || !report.trim()}
+            onClick={() => read(report)}
+          >
+            Read result lines
+          </button>
+        </details>
+      </section>
     </>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -148,6 +149,15 @@ export default function Observations() {
           Save observation &amp; find testing →
         </button>
       </form>
+      <div className="demo">
+        <div>
+          <h3>Already have a lab report?</h3>
+          <p>Photograph the printed page to read your measurements.</p>
+        </div>
+        <Link className="text-link" href="/reports">
+          Scan a report →
+        </Link>
+      </div>
     </>
   );
 }

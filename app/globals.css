@@ -540,3 +540,4 @@ details > * {
   width: auto;
   height: auto;
 }
+.sample-photo { justify-self: start; cursor: pointer; }

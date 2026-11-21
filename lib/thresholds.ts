@@ -4,6 +4,7 @@ export interface Row {
   unit: string;
   qualifier: string;
   source: string;
+  uncertain?: boolean;
 }
 const standards: Record<string, [number, string]> = {
   iron: [0.3, "EPA secondary standard"],
@@ -15,7 +16,7 @@ const standards: Record<string, [number, string]> = {
 };
 export function compare(row: Row) {
   const key = row.analyte.trim().toLowerCase();
-  const standard = standards[key];
+  const standard = Object.hasOwn(standards, key) ? standards[key] : undefined;
   if (!standard)
     return "No matching reference. Confirm the analyte and reporting basis with the lab.";
   const factor = { "mg/l": 1, ppm: 1, "ug/l": 0.001, ppb: 0.001 }[
@@ -49,13 +50,35 @@ export function compare(row: Row) {
       amount >= limit ? "Above reference" : "Lower bound alone is inconclusive";
   if (key === "lead" && row.qualifier !== "<")
     result += ". EPA’s health goal for lead is zero";
-  return result + " · " + reference + "." + conversion;
+  let explanation = "";
+  if (result === "Above reference" && source === "EPA secondary standard")
+    explanation =
+      " This is above an appearance or taste guideline. " +
+      (key === "iron"
+        ? "Iron can contribute to orange staining. A measured iron result alone cannot establish the cause of a color change."
+        : "Ask your lab whether this finding could explain a change you noticed.");
+  else if (result.startsWith("Above reference"))
+    explanation =
+      " This exceeds the public-water reference. Contact your county health department for advice about using this well water.";
+  else if (result === "Below reporting limit")
+    explanation =
+      " The lab reported less than the printed value. The exact concentration is unknown.";
+  else if (result.startsWith("At or below reference"))
+    explanation =
+      " This measurement falls within the comparison level for this item.";
+  else
+    explanation =
+      " Ask the lab whether a more sensitive measurement is available.";
+  return result + " · " + reference + "." + conversion + explanation;
 }
 export function parseRows(text: string): Row[] {
   return text.split(/\r?\n/).flatMap((source) => {
-    const line = source.replace(/^Private well,/i, "").trim();
+    const line = source
+      .replace(/^Private well,/i, "")
+      .replace(/\s*\|\s*/g, " ")
+      .trim();
     const match =
-      /^([a-z][a-z ()\d-]*?)(?:\s+|\s*\.{2,}\s*|,)([<>＝=]?)\s*(\d+(?:\.\d+)?)(?:\s+|,)([^\s,]+)$/i.exec(
+      /^([a-z][a-z ()\d-]*?)(?:\s+|\s*\.{2,}\s*|,)([<>=]?)\s*(\d+(?:\.\d+)?)(?:\s+|,)([^\s,]+)$/i.exec(
         line,
       );
     return match
