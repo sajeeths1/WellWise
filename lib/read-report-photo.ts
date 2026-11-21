@@ -1,3 +1,4 @@
+import { readAverageColumn } from "./summary-table";
 import { parseRows, type Row } from "./thresholds";
 
 export async function readReportPhoto(
@@ -36,14 +37,16 @@ export async function readReportPhoto(
     const lines = (data.blocks ?? []).flatMap((block) =>
       block.paragraphs.flatMap((p) => p.lines),
     );
-    const rows: Row[] = lines.flatMap((line) =>
-      parseRows(line.text.trim()).map((row) => ({
-        ...row,
-        uncertain:
-          line.confidence < 85 ||
-          line.words.some((word) => word.confidence < 80),
-      })),
-    );
+    const rows: Row[] =
+      readAverageColumn(lines) ??
+      lines.flatMap((line) =>
+        parseRows(line.text.trim()).map((row) => ({
+          ...row,
+          uncertain:
+            line.confidence < 85 ||
+            line.words.some((word) => word.confidence < 80),
+        })),
+      );
     return { text: data.text, rows };
   } finally {
     signal.removeEventListener("abort", stop);

@@ -541,3 +541,4 @@ details > * {
   height: auto;
 }
 .sample-photo { justify-self: start; cursor: pointer; }
+.file-action{position:relative;overflow:hidden}.file-action input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.file-action:focus-within{outline:3px solid #589897;outline-offset:3px}.finding.elevated{border-left-color:#ad572b;background:#fff1e5}

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useWell } from "../workspace";
@@ -20,8 +21,8 @@ export default function Reports() {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState("");
   const scan = useRef<AbortController | null>(null);
-  const camera = useRef<HTMLInputElement>(null);
-  const upload = useRef<HTMLInputElement>(null);
+  const summaryReport = rows.some((row) => row.period === "Average");
+  const resultsPanel = useRef<HTMLElement>(null);
   useEffect(() => () => scan.current?.abort(), []);
   useEffect(
     () => () => {
@@ -138,38 +139,34 @@ export default function Reports() {
           and units in view. WellWise reads it on your device.
         </p>
         <div className="inline">
-          <button
-            className="button"
-            disabled={loading}
-            onClick={() => camera.current?.click()}
-          >
+          <label className="button file-action">
             Take a photo
-          </button>
-          <button
-            className="secondary"
-            disabled={loading}
-            onClick={() => upload.current?.click()}
-          >
+            <input
+              type="file"
+              aria-label="Take a report photo"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              onChange={pick}
+              disabled={loading}
+            />
+          </label>
+          <label className="secondary file-action">
             Choose a report image
-          </button>
+            <input
+              type="file"
+              aria-label="Upload report photo"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={pick}
+              disabled={loading}
+            />
+          </label>
         </div>
-        <input
-          hidden
-          ref={camera}
-          aria-label="Take a report photo"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          capture="environment"
-          onChange={pick}
-        />
-        <input
-          hidden
-          ref={upload}
-          aria-label="Upload report photo"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={pick}
-        />
+        <p>
+          Have a picture of water itself?{" "}
+          <Link className="text-link" href="/observations">
+            Check water appearance →
+          </Link>
+        </p>
         <small>JPG, PNG or WebP · Up to 8 MB</small>
         <button
           className="text-link sample-photo"
@@ -189,9 +186,15 @@ export default function Reports() {
         >
           Try a synthetic report photo →
         </button>
-        <p role="status">{progress || error}</p>
+        <p role="status">
+          {progress ||
+            error ||
+            (photo && rows.length
+              ? rows.length + " results ready for review below."
+              : "")}
+        </p>
         {photo && (
-          <details open>
+          <details>
             <summary>Original report photo</summary>
             <a href={photo} target="_blank" rel="noreferrer">
               <Image
@@ -210,8 +213,9 @@ export default function Reports() {
         <section className="panel form">
           <h2>Confirm the evidence</h2>
           <p>
-            Only recognized numeric lines appear below. Check for missing items
-            and compare every field with the original.
+            {summaryReport
+              ? "Monthly summary detected. Review the printed Average column below. Monthly readings and empty cells are excluded."
+              : "Check each recognized result against the original, including decimal points, units and less-than signs."}
           </p>
           {rows.map((row, i) => (
             <div
@@ -262,6 +266,9 @@ export default function Reports() {
             className="button"
             onClick={() => {
               setDone(true);
+              requestAnimationFrame(() =>
+                resultsPanel.current?.scrollIntoView({ block: "start" }),
+              );
               setLastReport({ text: report, rows });
             }}
           >
@@ -270,12 +277,31 @@ export default function Reports() {
         </section>
       )}
       {done && (
-        <section className="panel form" aria-live="polite">
+        <section ref={resultsPanel} className="panel form" aria-live="polite">
           <h2>Comparison results</h2>
+          {summaryReport && (
+            <p>
+              <strong>
+                {/plant tap|finished water|water treatment plant/i.test(report)
+                  ? "Treatment-plant summary."
+                  : "Reported averages."}
+              </strong>{" "}
+              These figures describe the report’s sampling location and period.
+              An average can hide individual peaks and cannot establish
+              conditions at your tap today.
+            </p>
+          )}
           {rows.map((row, i) => (
-            <div className="finding" key={i}>
+            <div
+              className={
+                "finding " +
+                (compare(row).startsWith("Above reference") ? "elevated" : "")
+              }
+              key={i}
+            >
               <h3>
-                {row.analyte} · {row.qualifier}
+                {row.analyte} · {row.period ? row.period + " " : ""}
+                {row.qualifier === "=" ? "" : row.qualifier}
                 {row.value} {row.unit}
               </h3>
               <p>{compare(row)}</p>

@@ -53,6 +53,9 @@ export default function Dashboard() {
           <Link className="button mint" href="/reports">
             <Icon name="camera" />
             Scan a lab report
+          </Link>{" "}
+          <Link className="button secondary" href="/observations">
+            Check a water photo
           </Link>
         </div>
       </section>
