@@ -5,7 +5,9 @@ import { useRef, useState } from "react";
 
 import { useWell } from "../workspace";
 
-function suggestColor(file: ImageBitmap) {
+type Point = { x: number; y: number };
+const center = { x: 0.5, y: 0.5 };
+function suggestColor(file: HTMLCanvasElement, point: Point) {
   const canvas = document.createElement("canvas");
   const size = 48;
   canvas.width = canvas.height = size;
@@ -13,10 +15,10 @@ function suggestColor(file: ImageBitmap) {
   if (!ctx) return "Color could not be sampled.";
   ctx.drawImage(
     file,
-    file.width * 0.32,
-    file.height * 0.32,
-    file.width * 0.36,
-    file.height * 0.36,
+    file.width * (point.x - 0.05),
+    file.height * (point.y - 0.05),
+    file.width * 0.1,
+    file.height * 0.1,
     0,
     0,
     size,
@@ -51,12 +53,12 @@ function suggestColor(file: ImageBitmap) {
   if (!dominant)
     return "The central area has too little visible detail to describe.";
   return (
-    "The center of the photo appears " +
+    "The selected area appears " +
     dominant[0] +
     ". " +
     (edges > pairs * 0.1
       ? "It has a patchy pattern of light and dark areas. Reflections, the container or suspended material could produce this pattern."
-      : "Color is fairly even across the sampled area. The image cannot resolve fine particles or dissolved substances.")
+      : "The color looks fairly even in this small area.")
   );
 }
 export default function Observations() {
@@ -72,8 +74,22 @@ export default function Observations() {
   const [saved, setSaved] = useState(false);
   const [hazard, setHazard] = useState(false);
   const generation = useRef(0);
-  async function select(file?: File) {
-    if (!file) return;
+  const frame = useRef<HTMLCanvasElement | null>(null);
+  const [spot, setSpot] = useState<Point>(center);
+  const [example, setExample] = useState(false);
+  function describe(canvas: HTMLCanvasElement, point: Point) {
+    const bounded = {
+      x: Math.max(0.05, Math.min(0.95, point.x)),
+      y: Math.max(0.05, Math.min(0.95, point.y)),
+    };
+    setSpot(bounded);
+    const text = suggestColor(canvas, bounded);
+    setDescription(text);
+    setVisual(text);
+    setSaved(false);
+  }
+  async function select(input: File | "example" | undefined) {
+    if (!input) return;
     const id = ++generation.current;
     setFeedback("");
     setSaved(false);
@@ -81,7 +97,17 @@ export default function Observations() {
     setPreview("");
     setDescription("");
     setBusy(true);
+    setExample(false);
+    frame.current = null;
     try {
+      let file: Blob;
+      if (input === "example") {
+        const response = await fetch("/samples/brown-tap-water.jpg");
+        if (!response.ok) throw new Error("Sample unavailable");
+        file = await response.blob();
+      } else {
+        file = input;
+      }
       if (
         !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
         !file.size ||
@@ -99,14 +125,9 @@ export default function Observations() {
           .getContext("2d")!
           .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         setPreview(canvas.toDataURL("image/jpeg"));
-        const suggestion = suggestColor(bitmap);
-        setVisual(suggestion);
-        setDescription(suggestion);
-        setFeedback(
-          suggestion
-            ? "Review the suggested color below. Lighting and the background can affect it."
-            : "Describe what you see in the water. The photo has no distinct warm tint in the center.",
-        );
+        frame.current = canvas;
+        setExample(input === "example");
+        describe(canvas, input === "example" ? { x: 0.42, y: 0.66 } : center);
       } finally {
         bitmap.close();
       }
@@ -143,31 +164,122 @@ export default function Observations() {
           Photo of your water <small>Optional</small>
         </label>
         <p>Center the water in the frame. Photos stay in this tab.</p>
-        <input
-          type="file"
-          id="photo"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            void select(file);
-          }}
-        />
+        <div className="inline">
+          <label className="button file-action">
+            Take a water photo
+            <input
+              type="file"
+              aria-label="Take a water photo"
+              capture="environment"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                void select(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <label className="secondary file-action">
+            Choose an image
+            <input
+              type="file"
+              id="photo"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                void select(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className="text-link"
+            disabled={busy}
+            onClick={() => void select("example")}
+          >
+            Try a brown tap-water photo
+          </button>
+        </div>
         {preview && (
-          <Image
-            unoptimized
-            width={800}
-            height={600}
-            className="preview"
-            src={preview}
-            alt="Your water observation"
-          />
+          <>
+            <p>
+              Tap the water to inspect its color. Use the arrow keys to move the
+              marker.
+            </p>
+            <button
+              type="button"
+              className="water-frame"
+              aria-label="Select the water area to inspect"
+              onKeyDown={(e) => {
+                const moves: Record<string, Point> = {
+                  ArrowLeft: { x: -0.05, y: 0 },
+                  ArrowRight: { x: 0.05, y: 0 },
+                  ArrowUp: { x: 0, y: -0.05 },
+                  ArrowDown: { x: 0, y: 0.05 },
+                };
+                const move = moves[e.key];
+                if (move && frame.current) {
+                  e.preventDefault();
+                  describe(frame.current, {
+                    x: spot.x + move.x,
+                    y: spot.y + move.y,
+                  });
+                }
+              }}
+              onClick={(e) => {
+                if (!frame.current || e.detail === 0) return;
+                const bounds = e.currentTarget.getBoundingClientRect();
+                describe(frame.current, {
+                  x: (e.clientX - bounds.left) / bounds.width,
+                  y: (e.clientY - bounds.top) / bounds.height,
+                });
+              }}
+            >
+              <Image
+                unoptimized
+                width={800}
+                height={600}
+                src={preview}
+                alt={
+                  example
+                    ? "Brown water flowing from a tap and pooling near the drain."
+                    : "Your water observation"
+                }
+              />
+              <span
+                aria-hidden="true"
+                style={{ left: spot.x * 100 + "%", top: spot.y * 100 + "%" }}
+              />
+            </button>
+            {example && (
+              <small>
+                Example photo by AVRS, CC0.{" "}
+                <a
+                  className="text-link"
+                  href="https://commons.wikimedia.org/w/index.php?oldid=893362331"
+                >
+                  Original photograph ↗
+                </a>
+              </small>
+            )}
+          </>
         )}
         <p role="status">{busy ? "Reading photo…" : feedback}</p>
         {preview && (
           <section className="panel form" aria-label="Water photo assessment">
             <h2>Water photo assessment</h2>
+            <h3>
+              {hazard
+                ? "Avoid using this water while you get local instructions"
+                : "Drinking safety is unknown from this photo"}
+            </h3>
             <p>{visual}</p>
+            {visual.includes("orange or brown") && (
+              <p>
+                Rust or stirred-up sediment can give water this color. The
+                picture cannot tell which is present. If this color is new, note
+                when it started and whether it appears at other taps.
+              </p>
+            )}
             <p>
               Lighting and the container affect the image. A photo cannot
               identify microbes, metals, or chemicals.

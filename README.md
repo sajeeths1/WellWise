@@ -7,13 +7,13 @@ A private well dashboard for North Carolina homeowners, built for TRIANGULATE. T
 Use Node.js 22 or 24 and npm.
 
 ~~~sh
-git clone https://github.com/sajeeths1/Triangulate.git
-cd Triangulate
+git clone https://github.com/sajeeths1/WellWise.git
+cd WellWise
 npm ci
 npm run dev
 ~~~
 
-Open http://localhost:3000. Record an observation or upload a photo up to 8 MB. A local color and contrast sampler describes the central part of the image. Use-specific guidance covers drinking, cooking and skin contact, with separate instructions for a suspected chemical spill or do-not-use advisory. Lighting, reflections and backgrounds can change the suggestion. Confirm the description before saving. A photo cannot determine whether water is safe to drink.
+Open http://localhost:3000. Record an observation or upload a photo up to 8 MB. Choose **Try a brown tap-water photo** for a ready-to-run example, or take a photo with a phone camera. Tap the water to select the area for local color and contrast sampling. The example is a resized [CC0 photograph by AVRS](https://commons.wikimedia.org/w/index.php?oldid=893362331). Use-specific guidance covers drinking, cooking and skin contact, with separate instructions for a suspected chemical spill or do-not-use advisory. Lighting, reflections and backgrounds can change the suggestion. Confirm the description before saving. A photo cannot determine whether water is safe to drink.
 
 Choose the well’s county to find a testing contact and copy a request. Wake and Franklin have individual contacts from NC DHHS. Other counties use the state directory. The app does not request GPS.
 
@@ -23,7 +23,7 @@ Run `npm run lint` and `npm run build` before pushing changes.
 
 ## Deployment
 
-In Vercel, choose **Add New → Project**, import **sajeeths1/Triangulate**, select the **Next.js** preset, leave the root directory at the repository root, and deploy. This scaffold runs without credentials.
+In Vercel, choose **Add New → Project**, import **sajeeths1/WellWise**, select the **Next.js** preset, leave the root directory at the repository root, and deploy. This scaffold runs without credentials.
 
 When the server routes are implemented, copy `.env.example` to `.env.local` for development. In Vercel **Project Settings → Environment Variables**, add `LLM_API_KEY` and `LLM_MODEL` for the desired environments and redeploy. Use a vision-capable model supported by the chosen provider. Keep the key server-side.
 
